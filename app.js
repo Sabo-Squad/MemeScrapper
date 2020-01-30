@@ -35,21 +35,10 @@ rp(options)
     });
     //looping through the total number of pages
     for (let i = 1; i <= maxPage; i++) {
-      console.log(i);
-      //setting the page number to scrape
-      options.uri = options.uri + '/page/' + i;
-      rp(options)
-        .then(pageHtml => {
-          //pushing meme objects to an array
-          $('table.entry_list > tbody > tr > td > a > img', pageHtml)
-            .toArray()
-            .forEach((item, index) => {
-              memes.push(new Meme(item.attribs.alt, item.attribs['data-src']));
-            });
-        })
-        .catch(err => {
-          console.log(err);
-        });
+      //setting the page number to scraper
+      let memeOptions = Object.assign({}, options);
+      memeOptions.uri = options.uri + '/page/' + i;
+      scrapeMemes(i, memeOptions, maxPage);
     }
   })
   .catch(err => {
@@ -57,9 +46,31 @@ rp(options)
     console.log(err);
   });
 
-fs.writeFile(config.app.desktoppath, memes, err => {
-  if (err) console.log(err);
-});
+  function scrapeMemes(i, memeOptions, maxPage) {
+    setTimeout(() => {
+      rp(memeOptions)
+        .then(pageHtml => {
+          //pushing meme objects to an array
+          $('table.entry_list > tbody > tr > td > a > img', pageHtml)
+            .toArray()
+            .forEach((item, index) => {
+              memes.push(new Meme(item.attribs.alt, item.attribs['data-src']));
+            });
+            console.log('page ' + i + ' out of ' + maxPage);
+            if(i == 2)
+              writeMemesToFile(JSON.stringify(memes));
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    }, 10000 * i);
+  }
+
+function writeMemesToFile(memeArray) {
+  fs.writeFile(config.app.desktoppath + '\\memes.txt', memeArray, err => {
+    if (err) console.log(err);
+  });  
+}
 
 // TODO when ready for DB
 // db.sequelize.sync({force: true}).then(() => {
